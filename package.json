@@ -1,0 +1,26 @@
+{
+  "name": "synopsis-client",
+  "version": "0.1.0",
+  "description": "A client that connects to a synopsis-backend for simple data storage",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/allain/synopsis-client"
+  },
+  "keywords": [
+    "synopsis",
+    "client"
+  ],
+  "author": "Allain Lalonde <allain.lalonde@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/allain/synopsis-client/issues"
+  },
+  "homepage": "https://github.com/allain/synopsis-client",
+  "dependencies": {
+    "jiff": "^0.7.0",
+    "mux-demux": "^3.7.9",
+    "reconnect": "^2.0.2",
+    "through2": "^0.6.3"
+  }
+}
