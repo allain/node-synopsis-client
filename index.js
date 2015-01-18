@@ -1,20 +1,20 @@
 module.exports = Store;
 
-var EventEmitter = require('events').EventEmitter;
+var Readable = require('stream').Readable;
 var reconnect = require('reconnect');
 var inherits = require('util').inherits;
 var jiff = require('jiff');
 var MuxDemux = require('mux-demux');
 var through2 = require('through2');
 
-inherits(Store, EventEmitter);
+inherits(Store, Readable);
 
 function Store(name, endPoint) {
   if (typeof name !== 'string') throw new Error('store must be given a name');
   if (!/^[a-z][a-z0-9]*$/.test(name)) throw new Error('Invalid store name given');
 
 
-  EventEmitter.call(this);
+  Readable.call(this, {objectMode: true});
 
   var self = this;
 
@@ -33,7 +33,12 @@ function Store(name, endPoint) {
 
   setTimeout(function() {
     self.emit('change', doc);
+    self.push(doc);
   }, 0);
+
+  this._read = function() {
+
+  };
 
   var patchStream;
   reconnect(function (stream) {
@@ -60,6 +65,7 @@ function Store(name, endPoint) {
       localStorage['store-' + name] = JSON.stringify(newDoc);
       doc = newDoc;
 
+      self.push(doc);
       self.emit('change', doc);
       next();
     }));
