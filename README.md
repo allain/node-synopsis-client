@@ -11,7 +11,9 @@ store.on('change', function(json) {
   console.log(JSON.stringify(json));
 });
 
-store.update({times: []});
+store.edit(function(doc) {
+  (doc.times = doc.times || []).push(Date.now());
+});
 
 store.patch([{op: 'add', path: '/times/0', value: Date.now()}]);
 ```

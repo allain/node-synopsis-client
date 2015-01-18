@@ -44,7 +44,7 @@ function Store(name, endPoint) {
     this.patchStream = patchStream;
 
     patchStream.pipe(through2.obj(function(update, enc, next) {
-      if (!Array.isArray(update)) {  
+      if (!Array.isArray(update)) {
         debug('error notification received');
         console.error(update);
         return next();
@@ -74,7 +74,13 @@ function Store(name, endPoint) {
     }
   }).connect(endPoint);
 
-  this.update = function(newDoc) {
+  this.edit = function(fn) {
+    var newDoc = JSON.parse(JSON.stringify(doc));
+
+    var changed = fn(newDoc);
+
+    // client chose to bail the edit
+    if (changed === false) return;
     try {
       var patch = jiff.diff(doc, newDoc, function(obj) {
         return obj.id || obj._id || obj.hash || JSON.stringify(obj);
