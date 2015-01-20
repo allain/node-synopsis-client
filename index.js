@@ -4,8 +4,8 @@ var Readable = require('stream').Readable;
 var reconnect = require('reconnect');
 var inherits = require('util').inherits;
 var jiff = require('jiff');
-var MuxDemux = require('mux-demux');
 var through2 = require('through2');
+var JSONStream = require('JSONStream');
 
 inherits(Store, Readable);
 
@@ -27,10 +27,6 @@ function Store(name, endPoint) {
 
   var initialized = false;
 
-  var mdm = MuxDemux({
-    error: false
-  });
-
   setTimeout(function() {
     self.emit('change', doc);
     self.push(doc);
@@ -41,18 +37,20 @@ function Store(name, endPoint) {
   };
 
   var patchStream;
+
   reconnect(function (stream) {
-    stream.pipe(mdm).pipe(stream);
+    stream.write(JSON.stringify({name: name, start: patchCount})); 
+    
+    stream.on('error', function(err) {
+      debug('error: ' + err);
+    });
 
-    patchStream = mdm.createStream(name + '/' + patchCount);
-
-    this.patchStream = patchStream;
-
-    patchStream.pipe(through2.obj(function(update, enc, next) {
+    patchStream = JSONStream.stringify(false);
+		patchStream.pipe(stream);
+    stream.pipe(JSONStream.parse()).pipe(through2.obj(function(update, enc, next) {
       if (!Array.isArray(update)) {
-        debug('error notification received');
-        console.error(update);
-        return next();
+        debug('error notification received', update);
+				return next();
       }
 
       // update = [patch, end]
@@ -61,7 +59,9 @@ function Store(name, endPoint) {
       self.emit('patch', update);
 
       var newDoc = jiff.patch(update[0], doc);
-      localStorage['store-' + name + '-end'] = update[1];
+      patchCount = update[1];
+
+      localStorage['store-' + name + '-end'] = patchCount;
       localStorage['store-' + name] = JSON.stringify(newDoc);
       doc = newDoc;
 
@@ -69,10 +69,6 @@ function Store(name, endPoint) {
       self.emit('change', doc);
       next();
     }));
-
-    patchStream.on('error', function(err) {
-      console.log(err);
-    });
 
     if (!initialized) {
       self.emit('ready');
@@ -87,6 +83,7 @@ function Store(name, endPoint) {
 
     // client chose to bail the edit
     if (changed === false) return;
+
     try {
       var patch = jiff.diff(doc, newDoc, function(obj) {
         return obj.id || obj._id || obj.hash || JSON.stringify(obj);
