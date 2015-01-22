@@ -6,6 +6,7 @@ var inherits = require('util').inherits;
 var jiff = require('jiff');
 var through2 = require('through2');
 var JSONStream = require('JSONStream');
+var uuid = require('uuid');
 
 inherits(Store, Readable);
 
@@ -13,10 +14,15 @@ function Store(name, endPoint) {
   if (typeof name !== 'string') throw new Error('store must be given a name');
   if (!/^[a-z][a-z0-9]*$/.test(name)) throw new Error('Invalid store name given');
 
-
   Readable.call(this, {objectMode: true});
 
   var self = this;
+
+  var consumerId = localStorage['store-' + name + '-consumerId'];
+	if (!consumerId) {
+		consumerId = uuid.v4();
+    localStorage['store-' + name + '-consumerId'] = consumerId;
+	}
 
   var doc = JSON.parse(localStorage['store-' + name]  || '{}');
   var patchCount = parseInt(localStorage['store-' + name + '-end'] || '0', 10) || 0;
@@ -39,7 +45,11 @@ function Store(name, endPoint) {
   var patchStream;
 
   reconnect(function (stream) {
-    stream.write(JSON.stringify({name: name, start: patchCount})); 
+    stream.write(JSON.stringify({
+			name: name,
+			start: patchCount,
+			consumerId: consumerId
+		})); 
     
     stream.on('error', function(err) {
       debug('error: ' + err);
