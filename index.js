@@ -9,8 +9,9 @@ var through2 = require('through2');
 var JSONStream = require('JSONStream');
 var uuid = require('uuid');
 
+var localStorage = localStorage || [];
 
-var Store = function(name, endPoint) {
+function Store(name, endPoint) {
   if (typeof name !== 'string') throw new Error('store must be given a name');
   if (!/^[a-z][a-z0-9-]*$/.test(name)) throw new Error('Invalid store name given');
 

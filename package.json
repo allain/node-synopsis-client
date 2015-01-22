@@ -7,6 +7,9 @@
     "type": "git",
     "url": "https://github.com/allain/node-synopsis-client"
   },
+  "scripts": {
+    "test": "./node_modules/mocha/bin/mocha test"
+  },
   "keywords": [
     "synopsis",
     "client"
@@ -18,10 +21,15 @@
   },
   "homepage": "https://github.com/allain/synopsis-client",
   "dependencies": {
+    "JSONStream": "^0.10.0",
+    "debug": "^2.1.1",
     "jiff": "^0.7.0",
     "mux-demux": "^3.7.9",
     "reconnect": "^2.0.2",
     "through2": "^0.6.3",
     "uuid": "^2.0.1"
+  },
+  "devDependencies": {
+    "mocha": "^2.1.0"
   }
 }
