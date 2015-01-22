@@ -9,27 +9,16 @@ var through2 = require('through2');
 var JSONStream = require('JSONStream');
 var uuid = require('uuid');
 
-var store;
-
 if (typeof(localStorage) === 'undefined') {
-  var values = {};
-  store = {
-    get: function(key) {
-      return values[key];
+  var data = {};
+  localStorage = {
+    setItem: function(key, val) {
+      data[key] = val;
     },
-    set: function(key, value) {
-      values[key] = value;
+    getItem: function(key) {
+      return data[key];
     }
-  };
-} else {
-  store = {
-    get: function(key) {
-      return localStorage[key];
-    },
-    set: function(key, value) {
-      localStorage[key] = value;
-    }
-  };
+  }
 }
 
 function Store(name, endPoint) {
@@ -42,14 +31,14 @@ function Store(name, endPoint) {
 
   var self = this;
 
-  var consumerId = store.get('store-consumerId');
+  var consumerId = localStorage.getItem('store-consumerId');
   if (!consumerId) {
     consumerId = uuid.v4();
-    store.set('store-consumerId', consumerId);
+    localStorage.setItem('store-consumerId', consumerId);
   }
 
-  var doc = JSON.parse(store.get('store-' + name) || '{}');
-  var patchCount = parseInt(store.get('store-' + name + '-end') || '0', 10) || 0;
+  var doc = JSON.parse(localStorage.getItem('store-' + name) || '{}');
+  var patchCount = parseInt(localStorage.getItem('store-' + name + '-end') || '0', 10) || 0;
 
   endPoint = endPoint || '/sync';
 
