@@ -14,31 +14,41 @@ var store;
 if (typeof(localStorage) === 'undefined') {
   var values = {};
   store = {
-		get: function(key) { return values[key]; },
-    set: function(key, value) { values[key] = value; }
-	};
+    get: function(key) {
+      return values[key];
+    },
+    set: function(key, value) {
+      values[key] = value;
+    }
+  };
 } else {
   store = {
-		get: function(key) { return localStorage[key]; },
-    set: function(key, value) { localStorage[key] = value; }
-	};
+    get: function(key) {
+      return localStorage[key];
+    },
+    set: function(key, value) {
+      localStorage[key] = value;
+    }
+  };
 }
 
 function Store(name, endPoint) {
   if (typeof name !== 'string') throw new Error('store must be given a name');
   if (!/^[a-z][a-z0-9-]*$/.test(name)) throw new Error('Invalid store name given');
 
-  Readable.call(this, {objectMode: true});
+  Readable.call(this, {
+    objectMode: true
+  });
 
   var self = this;
 
   var consumerId = store.get('store-consumerId');
-	if (!consumerId) {
-		consumerId = uuid.v4();
+  if (!consumerId) {
+    consumerId = uuid.v4();
     store.set('store-consumerId', consumerId);
-	}
+  }
 
-  var doc = JSON.parse(store.get('store-' + name)  || '{}');
+  var doc = JSON.parse(store.get('store-' + name) || '{}');
   var patchCount = parseInt(store.get('store-' + name + '-end') || '0', 10) || 0;
 
   endPoint = endPoint || '/sync';
@@ -58,23 +68,23 @@ function Store(name, endPoint) {
 
   var patchStream;
 
-  reconnect(function (stream) {
+  reconnect(function(stream) {
     stream.write(JSON.stringify({
-			name: name,
-			start: patchCount,
-			consumerId: consumerId
-		})); 
-    
+      name: name,
+      start: patchCount,
+      consumerId: consumerId
+    }));
+
     stream.on('error', function(err) {
       debug('error: ' + err);
     });
 
     patchStream = JSONStream.stringify(false);
-		patchStream.pipe(stream);
+    patchStream.pipe(stream);
     stream.pipe(JSONStream.parse()).pipe(through2.obj(function(update, enc, next) {
       if (!Array.isArray(update)) {
         debug('error notification received', update);
-				return next();
+        return next();
       }
 
       // update = [patch, end]
@@ -130,29 +140,29 @@ Store.Personal = function(name, endPoint) {
   var store = null;
 
   var duplexStream = dynamicDuplex(function(auth, enc, cb) {
-		var newAuthHash = auth.auth && auth.profile ? auth.auth.network + '-' + auth.profile.id : null;
-	  if (authHash === newAuthHash) {
-			return cb(null, store);
-		}
+    var newAuthHash = auth.auth && auth.profile ? auth.auth.network + '-' + auth.profile.id : null;
+    if (authHash === newAuthHash) {
+      return cb(null, store);
+    }
 
-		if (store) {
-			//TODO: store.destroy()
-		}
+    if (store) {
+      //TODO: store.destroy()
+    }
 
     if (auth) {
-			store = new Store('p-' + name + '-' + newAuthHash);
-			authHash = newAuthHash;
-			duplexStream.edit = store.edit.bind(store);
-			cb(null, store);
-		} else {
-			authHash = null;
-			store = null;
+      store = new Store('p-' + name + '-' + newAuthHash);
+      authHash = newAuthHash;
+      duplexStream.edit = store.edit.bind(store);
+      cb(null, store);
+    } else {
+      authHash = null;
+      store = null;
       duplexStream.edit = function() {
-				debug('attempting to edit a disconnected personal stream');
-			};
-			cb(null, null);
-		}
-	});
+        debug('attempting to edit a disconnected personal stream');
+      };
+      cb(null, null);
+    }
+  });
 
   return duplexStream;
 };
