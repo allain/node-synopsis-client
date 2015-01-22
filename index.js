@@ -9,7 +9,20 @@ var through2 = require('through2');
 var JSONStream = require('JSONStream');
 var uuid = require('uuid');
 
-var localStorage = localStorage || [];
+var store;
+
+if (typeof(localStorage) === 'undefined') {
+  var values = {};
+  store = {
+		get: function(key) { return values[key]; },
+    set: function(key, value) { values[key] = value; }
+	};
+} else {
+  store = {
+		get: function(key) { return localStorage[key]; },
+    set: function(key, value) { localStorage[key] = value; }
+	};
+}
 
 function Store(name, endPoint) {
   if (typeof name !== 'string') throw new Error('store must be given a name');
@@ -19,14 +32,14 @@ function Store(name, endPoint) {
 
   var self = this;
 
-  var consumerId = localStorage['store-consumerId'];
+  var consumerId = store.get('store-consumerId');
 	if (!consumerId) {
 		consumerId = uuid.v4();
-    localStorage['store-consumerId'] = consumerId;
+    store.set('store-consumerId', consumerId);
 	}
 
-  var doc = JSON.parse(localStorage['store-' + name]  || '{}');
-  var patchCount = parseInt(localStorage['store-' + name + '-end'] || '0', 10) || 0;
+  var doc = JSON.parse(store.get('store-' + name)  || '{}');
+  var patchCount = parseInt(store.get('store-' + name + '-end') || '0', 10) || 0;
 
   endPoint = endPoint || '/sync';
 
@@ -72,8 +85,8 @@ function Store(name, endPoint) {
       var newDoc = jiff.patch(update[0], doc);
       patchCount = update[1];
 
-      localStorage['store-' + name + '-end'] = patchCount;
-      localStorage['store-' + name] = JSON.stringify(newDoc);
+      store.set('store-' + name + '-end', patchCount);
+      store.set('store-' + name, JSON.stringify(newDoc));
       doc = newDoc;
 
       self.push(doc);
