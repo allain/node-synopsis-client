@@ -23,11 +23,6 @@ if (typeof(localStorage) === 'undefined') {
   };
 }
 
-function getStored(key, valDefault) {
-  var valJSON = localStorage.getItem(key);
-  return valJSON ? JSON.parse(valJSON) : valDefault;
-}
-
 function Store(name, options) {
   if (typeof name !== 'string') throw new Error('store must be given a name');
   if (!/^[a-z][a-z0-9-]*$/.test(name)) throw new Error('Invalid store name given');
@@ -35,7 +30,7 @@ function Store(name, options) {
   options = defaults(options, {
     endPoint: '/sync',
     patcher: function(patch, doc) {
-      return jiff.patch(update[0], doc);
+      return jiff.patch(patch, doc);
     },
     differ: function(before, after) {
       return jiff.diff(before, after, function(obj) {
@@ -52,14 +47,15 @@ function Store(name, options) {
   var self = this;
 
   // consumerId is used to identify this client, not user
-  var consumerId = getStored('store-consumerId');
+  var consumerId = localStorage.getItem('store-consumerId');
   if (!consumerId) {
     consumerId = uuid.v4();
     localStorage.setItem('store-consumerId', consumerId);
   }
 
-  var doc = getStored('store-' + name, {});
-  var patchCount = getStored('store-' + name + '-end', 0);
+  var doc = JSON.parse(localStorage.getItem('store-' + name) || '{}');
+
+  var patchCount = JSON.parse(localStorage.getItem('store-' + name + '-end') || '0');
 
   var debug = require('debug')('store:' + name);
 
