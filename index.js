@@ -1,6 +1,7 @@
 module.exports = Store;
 
 var Readable = require('stream').Readable;
+var dynamicDuplex = require('dynamic-duplex');
 var reconnect = require('reconnect');
 var inherits = require('util').inherits;
 var jiff = require('jiff');
@@ -12,7 +13,7 @@ inherits(Store, Readable);
 
 function Store(name, endPoint) {
   if (typeof name !== 'string') throw new Error('store must be given a name');
-  if (!/^[a-z][a-z0-9]*$/.test(name)) throw new Error('Invalid store name given');
+  if (!/^[a-z][a-z0-9-]*$/.test(name)) throw new Error('Invalid store name given');
 
   Readable.call(this, {objectMode: true});
 
@@ -108,3 +109,35 @@ function Store(name, endPoint) {
     }
   };
 }
+
+Store.Personal = function(name, endPoint) {
+  var authHash = null;
+  var store = null;
+
+  var duplexStream = dynamicDuplex(function(auth, enc, cb) {
+		var newAuthHash = auth.auth && auth.profile ? auth.auth.network + '-' + auth.profile.id : null;
+	  if (authHash === newAuthHash) {
+			return cb(null, store);
+		}
+
+		if (store) {
+			//TODO: store.destroy()
+		}
+
+    if (auth) {
+			store = new Store('p-' + newAuthHash);
+			authHash = newAuthHash;
+			duplexStream.edit = store.edit.bind(store);
+			cb(null, store);
+		} else {
+			authHash = null;
+			store = null;
+      duplexStream.edit = function() {
+				debug('attempting to edit a disconnected personal stream');
+			};
+			cb(null, null);
+		}
+	});
+
+  return duplexStream;
+};
