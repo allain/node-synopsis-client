@@ -24,6 +24,7 @@
   "dependencies": {
     "JSONStream": "^0.10.0",
     "debug": "^2.1.1",
+    "defaults": "^1.0.0",
     "jiff": "^0.7.0",
     "reconnect": "^2.0.2",
     "through2": "^0.6.3",

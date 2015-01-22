@@ -8,7 +8,9 @@ var jiff = require('jiff');
 var through2 = require('through2');
 var JSONStream = require('JSONStream');
 var uuid = require('uuid');
+var defaults = require('defaults');
 
+// If running on node.js stub out localStorage as we need it.
 if (typeof(localStorage) === 'undefined') {
   var data = {};
   localStorage = {
@@ -18,29 +20,46 @@ if (typeof(localStorage) === 'undefined') {
     getItem: function(key) {
       return data[key];
     }
-  }
+  };
 }
 
-function Store(name, endPoint) {
+function getStored(key, valDefault) {
+  var valJSON = localStorage.getItem(key);
+  return valJSON ? JSON.parse(valJSON) : valDefault;
+}
+
+function Store(name, options) {
   if (typeof name !== 'string') throw new Error('store must be given a name');
   if (!/^[a-z][a-z0-9-]*$/.test(name)) throw new Error('Invalid store name given');
+
+  options = defaults(options, {
+    endPoint: '/sync',
+    patcher: function(patch, doc) {
+      return jiff.patch(update[0], doc);
+    },
+    differ: function(before, after) {
+      return jiff.diff(before, after, function(obj) {
+        return obj.id || obj._id || obj.hash || JSON.stringify(obj);
+      });
+    }
+  });
 
   Readable.call(this, {
     objectMode: true
   });
+  this._read = function() {};
 
   var self = this;
 
-  var consumerId = localStorage.getItem('store-consumerId');
+  // consumerId is used to identify this client, not user
+  var consumerId = getStored('store-consumerId');
   if (!consumerId) {
     consumerId = uuid.v4();
     localStorage.setItem('store-consumerId', consumerId);
   }
 
-  var doc = JSON.parse(localStorage.getItem('store-' + name) || '{}');
-  var patchCount = parseInt(localStorage.getItem('store-' + name + '-end') || '0', 10) || 0;
-
-  endPoint = endPoint || '/sync';
+  var doc = getStored('store-' + name, {});
+  var patchCount = getStored('store-' + name + '-end', 0);
 
   var debug = require('debug')('store:' + name);
 
@@ -50,10 +69,6 @@ function Store(name, endPoint) {
     self.emit('change', doc);
     self.push(doc);
   }, 0);
-
-  this._read = function() {
-
-  };
 
   var patchStream;
 
@@ -81,7 +96,7 @@ function Store(name, endPoint) {
 
       self.emit('patch', update);
 
-      var newDoc = jiff.patch(update[0], doc);
+      var newDoc = options.pather(update[0], doc);
       patchCount = update[1];
 
       store.set('store-' + name + '-end', patchCount);
@@ -97,28 +112,25 @@ function Store(name, endPoint) {
       self.emit('ready');
       initialized = false;
     }
-  }).connect(endPoint);
+  }).connect(options.endPoint);
 
-  this.edit = function(fn) {
+  this.edit = function(editor) {
     var newDoc = JSON.parse(JSON.stringify(doc));
 
-    var changed = fn(newDoc);
+    editor(newDoc, function(err, changed) {
+      // client chose to bail the edit
+      if (changed === false || changed === void 0) return;
 
-    // client chose to bail the edit
-    if (changed === false) return;
-
-    try {
-      var patch = jiff.diff(doc, newDoc, function(obj) {
-        return obj.id || obj._id || obj.hash || JSON.stringify(obj);
-      });
-
-      var written = patchStream.write(patch);
-      if (!written) {
-        debug('error writing patch to stream');
+      try {
+        var patch = option.differ(doc, newDoc);
+        var written = patchStream.write(patch);
+        if (!written) {
+          debug('error writing patch to stream');
+        }
+      } catch (e) {
+        debug('unable to generate patch', e);
       }
-    } catch (e) {
-      debug('unable to generate patch', e);
-    }
+    });
   };
 };
 
