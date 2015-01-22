@@ -1,6 +1,6 @@
 {
   "name": "synopsis-client",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "description": "A client that connects to a synopsis-backend for simple data storage",
   "main": "index.js",
   "repository": {
