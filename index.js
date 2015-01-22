@@ -9,9 +9,8 @@ var through2 = require('through2');
 var JSONStream = require('JSONStream');
 var uuid = require('uuid');
 
-inherits(Store, Readable);
 
-function Store(name, endPoint) {
+var Store = function(name, endPoint) {
   if (typeof name !== 'string') throw new Error('store must be given a name');
   if (!/^[a-z][a-z0-9-]*$/.test(name)) throw new Error('Invalid store name given');
 
@@ -19,10 +18,10 @@ function Store(name, endPoint) {
 
   var self = this;
 
-  var consumerId = localStorage['store-' + name + '-consumerId'];
+  var consumerId = localStorage['store-consumerId'];
 	if (!consumerId) {
 		consumerId = uuid.v4();
-    localStorage['store-' + name + '-consumerId'] = consumerId;
+    localStorage['store-consumerId'] = consumerId;
 	}
 
   var doc = JSON.parse(localStorage['store-' + name]  || '{}');
@@ -108,36 +107,9 @@ function Store(name, endPoint) {
       debug('unable to generate patch', e);
     }
   };
-}
-
-Store.Personal = function(name, endPoint) {
-  var authHash = null;
-  var store = null;
-
-  var duplexStream = dynamicDuplex(function(auth, enc, cb) {
-		var newAuthHash = auth.auth && auth.profile ? auth.auth.network + '-' + auth.profile.id : null;
-	  if (authHash === newAuthHash) {
-			return cb(null, store);
-		}
-
-		if (store) {
-			//TODO: store.destroy()
-		}
-
-    if (auth) {
-			store = new Store('p-' + name + '-' + newAuthHash);
-			authHash = newAuthHash;
-			duplexStream.edit = store.edit.bind(store);
-			cb(null, store);
-		} else {
-			authHash = null;
-			store = null;
-      duplexStream.edit = function() {
-				debug('attempting to edit a disconnected personal stream');
-			};
-			cb(null, null);
-		}
-	});
-
-  return duplexStream;
 };
+
+inherits(Store, Readable);
+
+Store.Personal = require('./personal.js');
+
