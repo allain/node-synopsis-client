@@ -125,7 +125,7 @@ Store.Personal = function(name, endPoint) {
 		}
 
     if (auth) {
-			store = new Store('p-' + newAuthHash);
+			store = new Store('p-' + name + '-' + newAuthHash);
 			authHash = newAuthHash;
 			duplexStream.edit = store.edit.bind(store);
 			cb(null, store);
