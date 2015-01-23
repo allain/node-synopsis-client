@@ -8,6 +8,9 @@ if (typeof(localStorage) === 'undefined') {
     },
     getItem: function(key) {
       return data[key];
+    },
+    clear: function() {
+      data = {};
     }
   };
 } else {

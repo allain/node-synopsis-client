@@ -53,10 +53,8 @@ function Store(name, options) {
 
   var initialized = false;
 
-  setTimeout(function() {
-    self.emit('change', doc);
-    self.push(doc);
-  }, 0);
+  self.emit('change', doc);
+  self.push(doc);
 
   var patchStream;
 
@@ -73,6 +71,7 @@ function Store(name, options) {
 
     patchStream = JSONStream.stringify(false);
     patchStream.pipe(stream);
+
     stream.pipe(JSONStream.parse()).pipe(through2.obj(function(update, enc, next) {
       if (!Array.isArray(update)) {
         debug('error notification received', update);
@@ -84,11 +83,11 @@ function Store(name, options) {
 
       self.emit('patch', update);
 
-      var newDoc = options.pather(update[0], doc);
+      var newDoc = options.patcher(update[0], doc);
       patchCount = update[1];
 
-      store.set('store-' + name + '-end', patchCount);
-      store.set('store-' + name, JSON.stringify(newDoc));
+      localStorage.setItem('store-' + name + '-end', patchCount);
+      localStorage.setItem('store-' + name, JSON.stringify(newDoc));
       doc = newDoc;
 
       self.push(doc);

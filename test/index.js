@@ -4,6 +4,7 @@ var PassThrough = require('stream').PassThrough;
 var Store = require('../index.js');
 var duplexify = require('duplexify');
 var JSONStream = require('JSONStream');
+var localStorage = require('../localStorage');
 
 describe('SynopsisClient', function() {
   var mockStore;
@@ -13,6 +14,7 @@ describe('SynopsisClient', function() {
   var backendOutJSON;
 
   beforeEach(function() {
+    localStorage.clear();
     backendIn = new PassThrough();
     backendOut = new PassThrough();
 
@@ -20,7 +22,7 @@ describe('SynopsisClient', function() {
     backendIn.pipe(backendInJSON);
 
     backendOutJSON = JSONStream.stringify(false);
-    backendOut.pipe(backendOutJSON);
+    backendOutJSON.pipe(backendOut);
 
     mockStore = new Store('testing', {
       connector: function(connected) {
@@ -66,4 +68,43 @@ describe('SynopsisClient', function() {
     });
   });
 
+  it('emit empty doc when first created', function(done) {
+    mockStore.on('data', function(data) {
+      assert.deepEqual(data, {});
+      done();
+    });
+  });
+
+  it('emits docs as valid updates are received', function(done) {
+    var dataCount = 0;
+    var expectedDocs = [
+      {},
+      {
+        a: 1
+      },
+      {
+        a: 1,
+        b: 2
+      },
+    ];
+
+    mockStore.on('data', function(doc) {
+      assert.deepEqual(doc, expectedDocs.shift());
+      if (expectedDocs.length === 0) done();
+    });
+
+    backendOutJSON.write([[{
+      op: 'add',
+      path: '/a',
+      value: 1
+    }], 1]);
+
+    backendOutJSON.write([[{
+      op: 'add',
+      path: '/b',
+      value: 2
+    }], 2]);
+
+    mockStore.on('error', done);
+  });
 });
