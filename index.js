@@ -104,20 +104,20 @@ function Store(name, options) {
   this.edit = function(editor) {
     var newDoc = JSON.parse(JSON.stringify(doc));
 
-    editor(newDoc, function(err, changed) {
-      // client chose to bail the edit
-      if (changed === false || changed === void 0) return;
+    var changed = editor(newDoc);
 
-      try {
-        var patch = option.differ(doc, newDoc);
-        var written = patchStream.write(patch);
-        if (!written) {
-          debug('error writing patch to stream');
-        }
-      } catch (e) {
-        debug('unable to generate patch', e);
+    // client chose to bail the edit
+    if (changed === false) return;
+
+    try {
+      var patch = options.differ(doc, newDoc);
+      var written = patchStream.write(patch);
+      if (!written) {
+        debug('error writing patch to stream');
       }
-    });
+    } catch (e) {
+      debug('unable to generate patch', e);
+    }
   };
 };
 
