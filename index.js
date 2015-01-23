@@ -36,6 +36,10 @@ function Store(name, options) {
       return jiff.diff(before, after, function(obj) {
         return obj.id || obj._id || obj.hash || JSON.stringify(obj);
       });
+    },
+    connector: function(fn) {
+      // if no connector is provided, then it'll use the reconnect one
+      reconnect(fn).connect(options.endPoint);
     }
   });
 
@@ -47,10 +51,10 @@ function Store(name, options) {
   var self = this;
 
   // consumerId is used to identify this client, not user
-  var consumerId = localStorage.getItem('store-consumerId');
-  if (!consumerId) {
-    consumerId = uuid.v4();
-    localStorage.setItem('store-consumerId', consumerId);
+  this.consumerId = localStorage.getItem('store-consumerId');
+  if (!this.consumerId) {
+    this.consumerId = uuid.v4();
+    localStorage.setItem('store-consumerId', this.consumerId);
   }
 
   var doc = JSON.parse(localStorage.getItem('store-' + name) || '{}');
@@ -68,11 +72,11 @@ function Store(name, options) {
 
   var patchStream;
 
-  reconnect(function(stream) {
+  options.connector(function(stream) {
     stream.write(JSON.stringify({
       name: name,
       start: patchCount,
-      consumerId: consumerId
+      consumerId: self.consumerId
     }));
 
     stream.on('error', function(err) {
@@ -108,7 +112,7 @@ function Store(name, options) {
       self.emit('ready');
       initialized = false;
     }
-  }).connect(options.endPoint);
+  });
 
   this.edit = function(editor) {
     var newDoc = JSON.parse(JSON.stringify(doc));
