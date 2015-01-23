@@ -59,12 +59,27 @@ function Store(name, options) {
   var patchStream;
 
   options.connector(function(stream) {
-    stream.write(JSON.stringify({
+    debug('connected');
+    var handshake = {
       name: name,
       start: patchCount,
       consumerId: self.consumerId,
-      auth: options.auth
-    }));
+    }
+
+    var sessionKey;
+    var sid;
+
+    if (options.auth) {
+      sessionKey = 'session-' + options.auth.network + '-' + options.auth.profile;
+      sid = localStorage.getItem(sessionKey);
+      if (sid) {
+        handshake.sid = sid;
+      } else {
+        handshake.auth = options.auth;
+      }
+    }
+
+    stream.write(JSON.stringify(handshake));
 
     stream.on('error', function(err) {
       debug('error: ' + err);
@@ -75,7 +90,14 @@ function Store(name, options) {
 
     stream.pipe(JSONStream.parse()).pipe(through2.obj(function(update, enc, next) {
       if (!Array.isArray(update)) {
-        debug('error notification received', update);
+        if (update.error) {
+          debug('error notification received', update);
+        }
+
+        if (update.sid) {
+          localStorage.setItem(sessionKey, update.sid);
+        }
+
         return next();
       }
 
