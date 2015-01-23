@@ -9,19 +9,7 @@ var through2 = require('through2');
 var JSONStream = require('JSONStream');
 var uuid = require('uuid');
 var defaults = require('defaults');
-
-// If running on node.js stub out localStorage as we need it.
-if (typeof(localStorage) === 'undefined') {
-  var data = {};
-  localStorage = {
-    setItem: function(key, val) {
-      data[key] = val;
-    },
-    getItem: function(key) {
-      return data[key];
-    }
-  };
-}
+var localStorage = require('./localStorage.js');
 
 function Store(name, options) {
   if (typeof name !== 'string') throw new Error('store must be given a name');
