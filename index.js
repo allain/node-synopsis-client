@@ -62,7 +62,8 @@ function Store(name, options) {
     stream.write(JSON.stringify({
       name: name,
       start: patchCount,
-      consumerId: self.consumerId
+      consumerId: self.consumerId,
+      auth: options.auth
     }));
 
     stream.on('error', function(err) {
@@ -123,7 +124,7 @@ function Store(name, options) {
 
 inherits(Store, Readable);
 
-Store.Personal = function(name, endPoint) {
+Store.Personal = function(name, options) {
   var authHash = null;
   var store = null;
 
@@ -138,7 +139,14 @@ Store.Personal = function(name, endPoint) {
     }
 
     if (auth) {
-      store = new Store('p-' + name + '-' + newAuthHash);
+      options = defaults(options, {
+        auth: {
+          network: auth.auth.network,
+          access_token: auth.auth.authResponse.access_token,
+          profile: auth.profile.id
+        }
+      });
+      store = new Store('p-' + name + '-' + newAuthHash, options);
       authHash = newAuthHash;
       duplexStream.edit = store.edit.bind(store);
       cb(null, store);
