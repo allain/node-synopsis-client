@@ -8,8 +8,8 @@
     "url": "https://github.com/allain/node-synopsis-client"
   },
   "scripts": {
-    "test": "./node_modules/mocha/bin/mocha test",
-    "format": "find .  -name '*.js' -not -path './node_modules/*' | xargs node_modules/js-beautify/js/bin/js-beautify.js --replace"
+    "test": "./node_modules/.bin/mocha test",
+    "format": "find .  -name '*.js' -not -path './node_modules/*' | xargs node_modules/.bin/js-beautify --replace"
   },
   "keywords": [
     "synopsis",
