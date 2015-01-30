@@ -1,12 +1,13 @@
 module.exports = Store;
 
 var Readable = require('stream').Readable;
+var JSONStream = require('JSONStream');
+
 var dynamicDuplex = require('dynamic-duplex');
 var reconnect = require('reconnect');
 var inherits = require('util').inherits;
 var jiff = require('jiff');
 var through2 = require('through2');
-var JSONStream = require('JSONStream');
 var uuid = require('uuid');
 var defaults = require('defaults');
 var localStorage = require('./localStorage.js');
@@ -60,6 +61,7 @@ function Store(name, options) {
 
   options.connector(function(stream) {
     debug('connected');
+
     var handshake = {
       name: name,
       start: patchCount,
@@ -142,45 +144,13 @@ function Store(name, options) {
       debug('unable to generate patch', e);
     }
   };
+
+  this.destroy = function() {
+    localStorage.removeItem('store-' + name);
+    localStorage.removeItem('store-' + name + '-end');
+  }
 };
 
 inherits(Store, Readable);
 
-Store.Personal = function(name, options) {
-  var authHash = null;
-  var store = null;
-
-  var duplexStream = dynamicDuplex(function(auth, enc, cb) {
-    var newAuthHash = auth.auth && auth.profile ? auth.auth.network + '-' + auth.profile.id : null;
-    if (authHash === newAuthHash) {
-      return cb(null, store);
-    }
-
-    if (store) {
-      //TODO: store.destroy()
-    }
-
-    if (auth) {
-      options = defaults(options, {
-        auth: {
-          network: auth.auth.network,
-          access_token: auth.auth.authResponse.access_token,
-          profile: auth.profile.id
-        }
-      });
-      store = new Store('p-' + name + '-' + newAuthHash, options);
-      authHash = newAuthHash;
-      duplexStream.edit = store.edit.bind(store);
-      cb(null, store);
-    } else {
-      authHash = null;
-      store = null;
-      duplexStream.edit = function() {
-        debug('attempting to edit a disconnected personal stream');
-      };
-      cb(null, null);
-    }
-  });
-
-  return duplexStream;
-};
+Store.Personal = require('./personal');
